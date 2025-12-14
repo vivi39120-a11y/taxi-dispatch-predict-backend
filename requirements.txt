@@ -4,3 +4,4 @@ xgboost
 pyarrow
 folium
 pyproj
+uvicorn[standard]

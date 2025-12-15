@@ -24,7 +24,8 @@ from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from hotspot_predictor import compute_zones_payload
+from .hotspot_predictor import compute_zones_payload
+
 
 
 # This file lives in .../專題_XGB_LSTM_覆蓋版/hotspot_api_patch/api_server.py
@@ -84,34 +85,21 @@ def healthz() -> Dict[str, str]:
 
 @app.get("/api/hotspots/zones")
 def get_hotspot_zones(top_k: Optional[int] = None, response: Response = None) -> Dict[str, Any]:
-    """
-    Return latest next-hour zones payload.
-
-    top_k (optional): if provided, return only top_k zones by pred_rides.
-    """
     payload = get_or_compute_payload(force=False)
-
     if top_k is not None:
-        try:
-            k = max(1, int(top_k))
-        except Exception:
-            k = 20
+        k = max(1, int(top_k))
         zones = sorted(payload.get("zones", []), key=lambda z: z.get("pred_rides", 0), reverse=True)[:k]
         payload = {**payload, "zones": zones, "top_k": k}
 
-    # Avoid browser/proxy caching so UI sees fresh results
-    if response is not None:
-        response.headers["Cache-Control"] = "no-store"
+    response.headers["Cache-Control"] = "no-store"
     return payload
 
 
 @app.post("/api/hotspots/refresh")
 def refresh_hotspot_zones(response: Response = None) -> Dict[str, Any]:
     payload = get_or_compute_payload(force=True)
-    if response is not None:
-        response.headers["Cache-Control"] = "no-store"
+    response.headers["Cache-Control"] = "no-store"
     return payload
-
 
 # ✅ 靜態前端：優先用「專題根目錄/public」，沒有才用「hotspot_api_patch/public」
 public_dir = PROJECT_ROOT / "public"
